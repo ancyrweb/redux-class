@@ -1,11 +1,12 @@
 {
   "name": "redux-class",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "Bringing class-style reducer factory to your redux stack.",
   "main": "index.js",
   "scripts": {
-    "test": "jest",
-    "compile": "babel src/index.js --out-file index.js"
+    "test": "jest --watch",
+    "compile": "babel src/index.js --out-file index.js",
+    "publish": "npm publish"
   },
   "author": "Rewieer",
   "license": "MIT",

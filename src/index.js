@@ -38,10 +38,23 @@ function generateActionCreatorsForMap(actionNameToActionType){
   return userActions;
 }
 
+function ensureReturnedValueIsValid(value){
+  if(value === undefined){
+    throw new Error("A reducer may not return undefined")
+  }
+}
 
 function ReducerBundle(obj){
   const mapActionToCallbacks = obj.createUniqueActions();
-  const boundActions = obj.bindActions();
+
+  if(typeof mapActionToCallbacks !== "object" || mapActionToCallbacks === null){
+    throw new Error(
+      "createUniqueAction should return an object, where each keys is " +
+      "mapping to a reducer (e.g function(state, action){} )"
+    )
+  }
+
+  const boundActions = typeof obj.bindActions === "function" ? obj.bindActions() : {};
   const getInitialState = obj.getInitialState;
 
   const originalActionNamesToUniqueActionTypesMap = mapActionsToUniqueActionTypes(mapActionToCallbacks);
@@ -67,14 +80,24 @@ function ReducerBundle(obj){
     }
   };
 
-  this.reduce = function(state = getInitialState(), action){
+  if(typeof  getInitialState !== "function"){
+    throw new Error("You must provide a getInitialState method");
+  }
+
+  const initialState = getInitialState();
+  ensureReturnedValueIsValid(initialState);
+
+  this.reduce = function(state = initialState, action){
     if(action === initObj){
-      return getInitialState();
+      return initialState;
     }
 
     const callback = getCallbackForActionType(action.type);
     if(callback){
-      return callback(state, action);
+      const nextState = callback(state, action);
+      ensureReturnedValueIsValid(nextState);
+
+      return nextState;
     }
 
     if(boundActions[action.type]){

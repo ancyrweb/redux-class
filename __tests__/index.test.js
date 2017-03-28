@@ -1,6 +1,6 @@
 import ReduxClass from '../src/index';
 
-it('should work', function(){
+it('should handle basic logic', () => {
   const reducerBundle = ReduxClass.create({
     increment(state){
       return state + 1;
@@ -45,4 +45,107 @@ it('should work', function(){
 
   const state5 = reducerBundle.reduce(state4, { type: "substract", value: 2});
   expect(state5).toBe(1);
+});
+
+describe('checking for common errors', () => {
+  it('should allow creating without specifying bindActions', () => {
+    expect(() => {
+      ReduxClass.create({
+        increment(state){
+          return state + 1;
+        },
+        decrement(state){
+          return state - 1;
+        },
+        createUniqueActions(){
+          return {
+            increment: this.increment,
+            decrement: this.decrement,
+          }
+        },
+        getInitialState(){
+          return 0;
+        }
+      });
+    }).not.toThrow();
+  });
+
+  describe('getInitialState', () => {
+    it('should throw when returning undefined from getInitialState', () => {
+      expect(() => {
+        ReduxClass.create({
+          increment(state){
+            return state + 1;
+          },
+          createUniqueActions(){
+            return {
+              increment: this.increment,
+            }
+          },
+          getInitialState(){
+
+          }
+        });
+      }).toThrowError("A reducer may not return undefined");
+    });
+
+    it('should throw when getInitialState is not defined', () => {
+      expect(() => {
+        ReduxClass.create({
+          increment(state){
+            return state + 1;
+          },
+          createUniqueActions(){
+            return {
+              increment: this.increment,
+            }
+          },
+        });
+      }).toThrowError("You must provide a getInitialState method");
+    });
+  });
+
+  describe('createUniqueActions', () => {
+    it('should disallow not returning an object from createUniqueActions', () => {
+      expect(() => {
+        ReduxClass.create({
+          increment(state){
+            return state + 1;
+          },
+          decrement(state){
+            return state - 1;
+          },
+          createUniqueActions(){
+
+          },
+          getInitialState(){
+            return 0;
+          }
+        });
+      }).toThrowError(
+        "createUniqueAction should return an object, where each keys is " +
+        "mapping to a reducer (e.g function(state, action){} )"
+      );
+    });
+
+    it('should throw when a reducer returns undefined', () => {
+      expect(() => {
+        const reducerBundle = ReduxClass.create({
+          thisShouldThrow(){
+
+          },
+          createUniqueActions(){
+            return {
+              thisShouldThrow: this.thisShouldThrow,
+            }
+          },
+          getInitialState(){
+            return 0;
+          }
+        });
+
+        reducerBundle.reduce(0, reducerBundle.actions.thisShouldThrow());
+      }).toThrowError("A reducer may not return undefined");
+    });
+  })
 });
