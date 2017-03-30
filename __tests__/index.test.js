@@ -147,5 +147,29 @@ describe('checking for common errors', () => {
         reducerBundle.reduce(0, reducerBundle.actions.thisShouldThrow());
       }).toThrowError("A reducer may not return undefined");
     });
-  })
+  });
+
+  describe('bindActions', () => {
+    it.only('should throw when bindAction returns nothing', () => {
+      expect(() => {
+        ReduxClass.create({
+          increment(state){
+            return state + 1;
+          },
+          decrement(state){
+            return state - 1;
+          },
+          bindActions(){
+
+          },
+          getInitialState(){
+            return 0;
+          }
+        });
+      }).toThrowError(
+        "bindActions should return an object, where each keys is " +
+        "mapping to a reducer (e.g function(state, action){} )"
+      );
+    });
+  });
 });

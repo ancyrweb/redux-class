@@ -45,9 +45,9 @@ function ensureReturnedValueIsValid(value){
 }
 
 function ReducerBundle(obj){
-  const mapActionToCallbacks = obj.createUniqueActions();
+  const mapActionToCallbacks = typeof obj.createUniqueActions === "function" ? obj.createUniqueActions() : {};
 
-  if(typeof mapActionToCallbacks !== "object" || mapActionToCallbacks === null){
+  if(typeof mapActionToCallbacks !== "object" || mapActionToCallbacks == false){
     throw new Error(
       "createUniqueAction should return an object, where each keys is " +
       "mapping to a reducer (e.g function(state, action){} )"
@@ -55,6 +55,13 @@ function ReducerBundle(obj){
   }
 
   const boundActions = typeof obj.bindActions === "function" ? obj.bindActions() : {};
+  if(typeof boundActions !== "object" || boundActions == false){
+    throw new Error(
+      "bindActions should return an object, where each keys is " +
+      "mapping to a reducer (e.g function(state, action){} )"
+    )
+  }
+
   const getInitialState = obj.getInitialState;
 
   const originalActionNamesToUniqueActionTypesMap = mapActionsToUniqueActionTypes(mapActionToCallbacks);
