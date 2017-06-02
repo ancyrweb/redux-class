@@ -115,7 +115,7 @@ function ReducerBundle(obj){
   }
 }
 
-export default {
+module.exports = {
   create(config){
     return new ReducerBundle(config);
   }

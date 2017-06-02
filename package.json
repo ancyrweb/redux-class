@@ -1,6 +1,6 @@
 {
   "name": "redux-class",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "description": "Bringing class-style reducer factory to your redux stack.",
   "main": "index.js",
   "scripts": {
