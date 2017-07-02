@@ -150,7 +150,7 @@ describe('checking for common errors', () => {
   });
 
   describe('bindActions', () => {
-    it.only('should throw when bindAction returns nothing', () => {
+    it('should throw when bindAction returns nothing', () => {
       expect(() => {
         ReduxClass.create({
           increment(state){

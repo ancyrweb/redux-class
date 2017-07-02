@@ -1,6 +1,21 @@
-let id = 0;
-function createUniqueKey(key){
-  return key + (id++).toString();
+// @flow
+
+let id : number = 0;
+function generateID() : number {
+  return id++;
+}
+
+export type ReducerType = (state : mixed, action : { type: string }) => mixed;
+
+export type ReducerBundleType = {
+  reduce: ReducerType,
+  actions: {[key: string]: () => { type: string }},
+}
+
+export type BundleConfigType = {
+  createUniqueActions?: () => {[key: string] : ReducerType },
+  bindActions?: () => ReducerType,
+  getInitialState: () => mixed,
 }
 
 /**
@@ -10,11 +25,13 @@ function createUniqueKey(key){
  * @param actionMap
  * @returns {{}}
  */
-function mapActionsToUniqueActionTypes(actionMap){
+function toUniqueTypes(actionMap){
   const keys = Object.keys(actionMap);
   const namespacedNames = {};
+  const id = generateID();
+
   keys.forEach((key) => {
-    namespacedNames[key] = createUniqueKey(key);
+    namespacedNames[key] = key + id;
   });
 
   return namespacedNames;
@@ -22,57 +39,57 @@ function mapActionsToUniqueActionTypes(actionMap){
 
 /**
  * Generate
- * @param actionNameToActionType
+ * @param functionNameToActionType
  * @returns {{}}
  */
-function generateActionCreatorsForMap(actionNameToActionType){
-  const listOfUniqueActionTypes = Object.keys(actionNameToActionType);
-  const userActions = {};
+function toActionCreator(functionNameToActionType){
+  const functionNames = Object.keys(functionNameToActionType);
+  const actions = {};
 
-  listOfUniqueActionTypes.forEach((key) => {
-    userActions[key] = function(args){
-      return {type: actionNameToActionType[key], ...args }
+  functionNames.forEach((functionName) => {
+    actions[functionName] = function(args){
+      return {type: functionNameToActionType[functionName], ...args }
     };
   });
 
-  return userActions;
+  return actions;
 }
 
-function ensureReturnedValueIsValid(value){
-  if(value === undefined){
-    throw new Error("A reducer may not return undefined")
-  }
+/**
+ * Throws an error if the value is undefined
+ * @param value
+ */
+function ensureValueIsNotUndefined(value : any) : void {
+  if(value === undefined) throw new Error("A reducer may not return undefined");
 }
 
-function ReducerBundle(obj){
-  const mapActionToCallbacks = typeof obj.createUniqueActions === "function" ? obj.createUniqueActions() : {};
 
-  if(typeof mapActionToCallbacks !== "object" || mapActionToCallbacks == false){
+function createReducerBundle(config : BundleConfigType) : ReducerBundleType {
+  const mapActionToCallbacks = typeof config.createUniqueActions === "function" ? config.createUniqueActions() : {};
+
+  if(typeof mapActionToCallbacks !== "object" || !mapActionToCallbacks){
     throw new Error(
       "createUniqueAction should return an object, where each keys is " +
       "mapping to a reducer (e.g function(state, action){} )"
     )
   }
 
-  const boundActions = typeof obj.bindActions === "function" ? obj.bindActions() : {};
-  if(typeof boundActions !== "object" || boundActions == false){
+  const boundActions = typeof config.bindActions === "function" ? config.bindActions() : {};
+  if(typeof boundActions !== "object" || !boundActions){
     throw new Error(
       "bindActions should return an object, where each keys is " +
       "mapping to a reducer (e.g function(state, action){} )"
     )
   }
 
-  const getInitialState = obj.getInitialState;
+  const getInitialState = config.getInitialState;
 
-  const originalActionNamesToUniqueActionTypesMap = mapActionsToUniqueActionTypes(mapActionToCallbacks);
-  const userActions = generateActionCreatorsForMap(originalActionNamesToUniqueActionTypesMap);
+  const functionList = toUniqueTypes(mapActionToCallbacks);
+  const userActions = toActionCreator(functionList);
 
-  const getCallbackForActionType = (actionType) => {
-    for(let originalActionName in originalActionNamesToUniqueActionTypesMap){
-      if(
-        originalActionNamesToUniqueActionTypesMap.hasOwnProperty(originalActionName)
-        && actionType === originalActionNamesToUniqueActionTypesMap[originalActionName]
-      ){
+  const getCallback = (actionType) => {
+    for(let originalActionName in functionList){
+      if(functionList.hasOwnProperty(originalActionName) && actionType === functionList[originalActionName]){
         return mapActionToCallbacks[originalActionName];
       }
     }
@@ -80,43 +97,43 @@ function ReducerBundle(obj){
 
   const initObj = { type: "init" };
 
-  this.actions = {
-    ...userActions,
-    init(){
-      return initObj;
-    }
-  };
-
-  if(typeof  getInitialState !== "function"){
+  if(typeof getInitialState !== "function"){
     throw new Error("You must provide a getInitialState method");
   }
 
   const initialState = getInitialState();
-  ensureReturnedValueIsValid(initialState);
+  ensureValueIsNotUndefined(initialState);
 
-  this.reduce = function(state = initialState, action){
-    if(action === initObj){
-      return initialState;
+  return {
+    actions: {
+      ...userActions,
+      init(){
+        return initObj;
+      }
+    },
+    reduce(state : mixed = initialState, action : { type: string }) : mixed {
+      if(action === initObj){
+        return initialState;
+      }
+
+      const callback = getCallback(action.type);
+      if(callback){
+        const nextState = callback(state, action);
+        ensureValueIsNotUndefined(nextState);
+        return nextState;
+      }
+
+      if(boundActions[action.type]){
+        return boundActions[action.type](state, action);
+      }
+
+      return state;
     }
-
-    const callback = getCallbackForActionType(action.type);
-    if(callback){
-      const nextState = callback(state, action);
-      ensureReturnedValueIsValid(nextState);
-
-      return nextState;
-    }
-
-    if(boundActions[action.type]){
-      return boundActions[action.type](state, action);
-    }
-
-    return state;
   }
 }
 
 module.exports = {
-  create(config){
-    return new ReducerBundle(config);
+  create(config : BundleConfigType){
+    return createReducerBundle(config);
   }
 };

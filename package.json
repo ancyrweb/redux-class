@@ -1,6 +1,6 @@
 {
   "name": "redux-class",
-  "version": "0.0.5",
+  "version": "0.0.6",
   "description": "Bringing class-style reducer factory to your redux stack.",
   "main": "index.js",
   "scripts": {
@@ -11,9 +11,14 @@
   "author": "Rewieer",
   "license": "MIT",
   "devDependencies": {
+    "babel-cli": "^6.24.1",
     "babel-plugin-transform-object-rest-spread": "^6.23.0",
     "babel-preset-es2015": "^6.24.0",
+    "flow-bin": "^0.49.1",
     "jest": "^19.0.2",
     "redux": "^3.6.0"
+  },
+  "dependencies": {
+    "babel-preset-flow": "^6.23.0"
   }
 }
